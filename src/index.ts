@@ -18,13 +18,16 @@ import { connectUrl, finishSignIn, startSignIn } from "./t3.ts";
  */
 
 const webhookHandler = new LinearWebhookClient(config.linearWebhookSecret).createHandler();
-const seenWebhooks = new Set<string>();
+const seenEvents = new Set<string>();
 
 webhookHandler.on("AgentSessionEvent", (payload) => {
-  // Linear may resend a webhook; handle each one once.
-  if (seenWebhooks.has(payload.webhookId)) return;
-  seenWebhooks.add(payload.webhookId);
-  if (seenWebhooks.size > 1000) seenWebhooks.clear();
+  // Linear may resend a delivery; handle each event once. `webhookId` names the app's
+  // webhook, the same for every delivery, so the key is the session and its activity:
+  // a new session has none, and each reply or Stop is its own activity.
+  const key = [payload.action, payload.agentSession.id, payload.agentActivity?.id ?? ""].join(":");
+  if (seenEvents.has(key)) return;
+  seenEvents.add(key);
+  if (seenEvents.size > 1000) seenEvents.clear();
 
   // Answer the webhook right away and do the work in the background.
   handleAgentSessionEvent(payload).catch((error) => {

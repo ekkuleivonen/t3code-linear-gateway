@@ -148,14 +148,19 @@ export async function callTool(
     if (result.isError) {
       throw new Error(`T3 ${name} failed on ${host}: ${text}`);
     }
-    if (result.structuredContent) {
-      return result.structuredContent;
+    let value: any = result.structuredContent;
+    if (!value) {
+      try {
+        value = JSON.parse(text);
+      } catch {
+        return text;
+      }
     }
-    try {
-      return JSON.parse(text);
-    } catch {
-      return text;
+    // T3's orchestration tools return their failures as results, not MCP errors.
+    if (value?._tag === "OrchestratorMcpFailure") {
+      throw new Error(`T3 ${name} failed on ${host}: ${value.code}: ${value.message ?? text}`);
     }
+    return value;
   } catch (error) {
     if (error instanceof UnauthorizedError) {
       throw new NeedsSignIn(host);
@@ -263,5 +268,6 @@ export async function sendToThread(host: string, threadId: string, message: stri
 }
 
 export async function interruptThread(host: string, threadId: string): Promise<void> {
-  await callTool(host, "t3_thread_interrupt", { threadId });
+  // stop: what T3's own Stop button does (interrupt the running turn, hold queued messages).
+  await callTool(host, "t3_thread_interrupt", { threadId, stop: true });
 }
