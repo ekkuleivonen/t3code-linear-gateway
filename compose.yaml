@@ -1,0 +1,13 @@
+services:
+  gateway:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      # Only reachable from this machine; expose it with a tunnel or reverse proxy.
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - data:/data
+
+volumes:
+  data:

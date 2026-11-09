@@ -1,0 +1,23 @@
+{
+  "name": "t3code-linear-gateway",
+  "description": "Delegate Linear issues to T3 Code threads",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node src/index.ts",
+    "check": "tsc"
+  },
+  "dependencies": {
+    "@linear/sdk": "101.1.0",
+    "@modelcontextprotocol/sdk": "1.32.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}
