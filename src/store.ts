@@ -29,6 +29,10 @@ export interface SessionLink {
   host: string;
   threadId: string;
   link?: string;
+  /** Linear workspace of the session, for posting its activities. */
+  organizationId?: string;
+  /** The T3 run being watched; the session ends when it does. Unset when idle. */
+  runId?: string;
 }
 
 interface State {

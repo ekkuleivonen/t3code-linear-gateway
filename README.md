@@ -9,9 +9,14 @@ Linear issue delegated to "T3"
      → picks a T3 host that has the issue's repository as a project
      → starts a thread there (T3 MCP: t3_thread_launch, worktree)
   ← posts the thread link back to the Linear session
+     → waits for the thread's run to finish (t3_thread_wait)
+  ← posts the thread's answer, which ends the Linear session
 ```
 
-Replies in the Linear session are sent to the same thread, and **Stop** in Linear interrupts it.
+While the thread works, the Linear session stays active and shows **Stop**, which interrupts
+the thread. Replies in the session are sent to the same thread, and its next answer is posted
+back the same way. If the thread asks a question, the session waits for your reply. The gateway
+keeps following unfinished runs across its own restarts.
 
 It is a small Node server with two dependencies, adapted from Linear's
 [weather-bot](https://github.com/linear/weather-bot) example agent.

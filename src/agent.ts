@@ -5,12 +5,14 @@ import { getIssue, linearClient, postActivity, type IssueInfo } from "./linear.t
 import { readState, updateState } from "./store.ts";
 import {
   interruptThread,
+  latestRunId,
   launchThread,
   NeedsSignIn,
   connectUrl,
   pickHost,
   sendToThread,
 } from "./t3.ts";
+import { forgetRun, watchRun } from "./watch.ts";
 
 /**
  * Handles agent sessions: an issue delegated to (or mentioning) the gateway in Linear.
@@ -30,6 +32,8 @@ export async function handleAgentSessionEvent(
     const activity = webhook.agentActivity;
 
     if (webhook.action === "prompted" && link && activity?.signal === "stop") {
+      // First, so the run's watcher doesn't also answer.
+      forgetRun(sessionId);
       await interruptThread(link.host, link.threadId);
       await postActivity(client, sessionId, {
         type: "response",
@@ -38,13 +42,25 @@ export async function handleAgentSessionEvent(
       return;
     }
 
+    if (webhook.action === "prompted" && activity?.signal === "stop") {
+      await postActivity(client, sessionId, { type: "response", body: "No T3 thread to stop." });
+      return;
+    }
+
     if (webhook.action === "prompted" && link) {
       const body = (activity?.content as { body?: string } | undefined)?.body ?? "";
-      await sendToThread(link.host, link.threadId, body);
+      const runId = await sendToThread(link.host, link.threadId, body);
+      // A thought keeps the session active (and Stop available) until the run ends.
       await postActivity(client, sessionId, {
-        type: "response",
+        type: "thought",
         body: `Sent to the ${threadRef(link.link)} on ${link.host}.`,
       });
+      // Sessions from before 0.2.0 have no stored workspace.
+      updateState((state) => {
+        const current = state.sessions[sessionId];
+        if (current) current.organizationId = webhook.organizationId;
+      });
+      if (runId) watchRun(sessionId, runId);
       return;
     }
 
@@ -112,7 +128,11 @@ async function startThread(
   });
 
   updateState((state) => {
-    state.sessions[sessionId] = { host: placement.host, ...thread };
+    state.sessions[sessionId] = {
+      host: placement.host,
+      ...thread,
+      organizationId: webhook.organizationId,
+    };
   });
 
   if (thread.link) {
@@ -121,12 +141,15 @@ async function startThread(
     });
   }
 
+  // A thought keeps the session active (and Stop available); the run's answer ends it.
   await postActivity(client, sessionId, {
-    type: "response",
+    type: "thought",
     body:
       `Started a ${threadRef(thread.link)} for \`${ownerRepo}\` on ${placement.host}, ` +
-      `in a new worktree. Reply here to send it messages.`,
+      `in a new worktree. Its answer will be posted here; reply to send it messages.`,
   });
+  const runId = await latestRunId(placement.host, thread.threadId);
+  if (runId) watchRun(sessionId, runId);
 }
 
 /**
