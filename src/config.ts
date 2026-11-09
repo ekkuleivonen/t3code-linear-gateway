@@ -42,7 +42,9 @@ export const config = {
   linearClientSecret: required("LINEAR_CLIENT_SECRET"),
   linearWebhookSecret: required("LINEAR_WEBHOOK_SECRET"),
   repoLabelGroup: process.env.REPO_LABEL_GROUP ?? "Repo",
-  baseBranch: process.env.T3_BASE_BRANCH || undefined,
+  // Branch new worktrees start from, fetched fresh from the remote. T3 requires one, and
+  // its MCP cannot report a project's default branch before a thread exists.
+  baseBranch: process.env.T3_BASE_BRANCH || "main",
   // Permission mode for new threads. The T3 sign-in level caps it.
   runtimeMode: oneOf(
     "T3_RUNTIME_MODE",

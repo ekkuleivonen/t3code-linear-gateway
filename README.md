@@ -96,7 +96,7 @@ again, with the link.
 | `LINEAR_WEBHOOK_SECRET` | yes | Linear OAuth app webhook signing secret |
 | `T3_HOSTS` | yes | `name=mcp-url` pairs, comma-separated |
 | `REPO_LABEL_GROUP` | no | Label group naming the repository, default `Repo` |
-| `T3_BASE_BRANCH` | no | Branch new worktrees start from, default T3's choice |
+| `T3_BASE_BRANCH` | no | Branch new worktrees start from, default `main`. T3 fetches it from the remote first, so threads start from the latest commit |
 | `T3_RUNTIME_MODE` | no | `approval-required`, `auto-accept-edits`, `auto` or `full-access` (default) |
 | `LOAD_BALANCE_MODE` | no | `threads` (default) or `off` |
 | `PORT` | no | Default `3000` |
