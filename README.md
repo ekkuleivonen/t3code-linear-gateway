@@ -61,6 +61,9 @@ cp .env.example .env   # fill in PUBLIC_URL, the Linear values and T3_HOSTS
 docker compose up -d --build
 ```
 
+Or run the published image, `ghcr.io/ekkuleivonen/t3code-linear-gateway`, built from each
+release tag.
+
 The container listens on `127.0.0.1:3000`. Expose it at `PUBLIC_URL` with a tunnel or reverse
 proxy, for example a Cloudflare Tunnel ingress rule:
 
@@ -115,6 +118,9 @@ again, with the link.
   runs with full access. Keep the Linear app private, and lower `T3_RUNTIME_MODE` (or the access
   level approved at sign-in) if people you don't fully trust can write issues or comments.
 - Webhooks are verified with the Linear signing secret.
+- Only `POST /webhook` has to be reachable by Linear. Every other route, including both OAuth
+  callbacks, is only opened by your own browser, so you can put them behind an identity proxy
+  (for example Cloudflare Access) and leave just `/webhook` public.
 - Anyone can open the T3 sign-in links, but finishing a sign-in needs a code from your T3 host,
   and a new sign-in only replaces the old one once it succeeds.
 
