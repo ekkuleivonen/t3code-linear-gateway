@@ -181,8 +181,9 @@ export interface Placement {
 }
 
 /**
- * Find the host to run a repository on: among hosts that have the repository as a
- * T3 project, the one with the fewest running threads.
+ * Find the host to run a repository on, among hosts that have the repository as a
+ * T3 project. With LOAD_BALANCE_MODE=off, the first such host in T3_HOSTS order;
+ * with "threads", the one with the fewest active threads.
  * Returns the placement, or the reasons no host could be used.
  */
 export async function pickHost(
@@ -199,6 +200,10 @@ export async function pickHost(
         return key.endsWith(`/${ownerRepo.toLowerCase()}`) && !p.archivedAt;
       });
       if (!project) continue;
+
+      if (config.loadBalanceMode === "off") {
+        return { placement: { host, projectId: project.id }, problems };
+      }
 
       const active = await callTool(host, "t3_thread_list", {
         allProjects: true,
@@ -232,6 +237,7 @@ export async function launchThread(options: {
     projectId: options.placement.projectId,
     title: options.title,
     message: options.message,
+    runtimeMode: config.runtimeMode,
     workspaceStrategy: config.baseBranch
       ? { type: "worktree", baseRef: config.baseBranch }
       : { type: "worktree" },

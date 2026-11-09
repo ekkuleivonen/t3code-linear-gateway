@@ -26,6 +26,14 @@ function parseHosts(value: string): Record<string, string> {
   return hosts;
 }
 
+function oneOf<T extends string>(name: string, allowed: readonly T[], fallback: T): T {
+  const value = process.env[name] || fallback;
+  if (!allowed.includes(value as T)) {
+    throw new Error(`${name} must be one of ${allowed.join(", ")}, got "${value}"`);
+  }
+  return value as T;
+}
+
 export const config = {
   port: Number(process.env.PORT ?? 3000),
   publicUrl: required("PUBLIC_URL").replace(/\/$/, ""),
@@ -35,5 +43,13 @@ export const config = {
   linearWebhookSecret: required("LINEAR_WEBHOOK_SECRET"),
   repoLabelGroup: process.env.REPO_LABEL_GROUP ?? "Repo",
   baseBranch: process.env.T3_BASE_BRANCH || undefined,
+  // Permission mode for new threads. The T3 sign-in level caps it.
+  runtimeMode: oneOf(
+    "T3_RUNTIME_MODE",
+    ["approval-required", "auto-accept-edits", "auto", "full-access"],
+    "full-access"
+  ),
+  // off: first host in T3_HOSTS order. threads: fewest active threads.
+  loadBalanceMode: oneOf("LOAD_BALANCE_MODE", ["off", "threads"], "threads"),
   t3Hosts: parseHosts(required("T3_HOSTS")),
 };
