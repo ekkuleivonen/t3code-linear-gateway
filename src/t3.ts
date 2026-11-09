@@ -238,9 +238,9 @@ export async function launchThread(options: {
     title: options.title,
     message: options.message,
     runtimeMode: config.runtimeMode,
-    workspaceStrategy: config.baseBranch
-      ? { type: "worktree", baseRef: config.baseBranch }
-      : { type: "worktree" },
+    // startFromOrigin: fetch the base branch first, so a stale local copy on the host
+    // never becomes the starting point.
+    workspaceStrategy: { type: "worktree", baseRef: config.baseBranch, startFromOrigin: true },
     clientRequestId: options.requestId,
   });
   const thread = result?.thread ?? result;
