@@ -263,8 +263,72 @@ function webLink(link: unknown): string | undefined {
   return typeof link === "string" && link.startsWith("https://") ? link : undefined;
 }
 
-export async function sendToThread(host: string, threadId: string, message: string): Promise<void> {
-  await callTool(host, "t3_thread_send", { threadId, message, mode: "auto" });
+/** Send a message to a thread. Returns the run that handles it. */
+export async function sendToThread(
+  host: string,
+  threadId: string,
+  message: string
+): Promise<string | undefined> {
+  const result = await callTool(host, "t3_thread_send", { threadId, message, mode: "auto" });
+  return result?.runId ?? undefined;
+}
+
+/** The thread's newest run, for example the one a launch started. */
+export async function latestRunId(host: string, threadId: string): Promise<string | undefined> {
+  const result = await callTool(host, "t3_thread_read", {
+    threadId,
+    view: "messages",
+    limit: 1,
+    maxCharsPerItem: 1,
+    runLimit: 5,
+  });
+  const runs: { runId: string; ordinal: number }[] = result?.recentRuns ?? [];
+  return runs.toSorted((a, b) => b.ordinal - a.ordinal)[0]?.runId;
+}
+
+export interface RunWait {
+  status: string;
+  timedOut: boolean;
+}
+
+/** Wait up to timeoutMs for a run to finish. T3 returns at once when it already has. */
+export async function waitForRun(
+  host: string,
+  threadId: string,
+  runId: string,
+  timeoutMs: number
+): Promise<RunWait> {
+  const result = await callTool(host, "t3_thread_wait", { threadId, runId, timeoutMs });
+  return { status: String(result?.status), timedOut: result?.timedOut === true };
+}
+
+/** The last assistant message a run wrote, or undefined. */
+export async function runAnswer(
+  host: string,
+  threadId: string,
+  runId: string
+): Promise<{ text: string; truncated: boolean } | undefined> {
+  let answer: { text: string; truncated: boolean } | undefined;
+  let afterPosition: number | undefined;
+  // Messages come oldest first, a page at a time; keep the run's last answer.
+  for (let page = 0; page < 50; page++) {
+    const result = await callTool(host, "t3_thread_read", {
+      threadId,
+      view: "messages",
+      limit: 100,
+      maxCharsPerItem: 8000,
+      runLimit: 1,
+      ...(afterPosition === undefined ? {} : { afterPosition }),
+    });
+    for (const item of result?.items ?? []) {
+      if (item.type === "assistant_message" && item.runId === runId && item.text) {
+        answer = { text: item.text, truncated: item.textTruncated === true };
+      }
+    }
+    if (!result?.hasMore || result.nextPosition == null) break;
+    afterPosition = result.nextPosition;
+  }
+  return answer;
 }
 
 export async function interruptThread(host: string, threadId: string): Promise<void> {

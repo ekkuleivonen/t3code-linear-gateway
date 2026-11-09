@@ -5,6 +5,7 @@ import { config } from "./config.ts";
 import { finishLinearInstall, linearAuthorizeUrl } from "./linear.ts";
 import { readState } from "./store.ts";
 import { connectUrl, finishSignIn, startSignIn } from "./t3.ts";
+import { resumeWatches } from "./watch.ts";
 
 /**
  * Routes:
@@ -122,4 +123,6 @@ http
   .listen(config.port, () => {
     console.log(`t3code-linear-gateway listening on port ${config.port}`);
     console.log(hostStatus());
+    // Sessions whose T3 run was still working when the gateway stopped.
+    resumeWatches();
   });
