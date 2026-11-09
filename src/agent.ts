@@ -55,6 +55,11 @@ export async function handleAgentSessionEvent(
         type: "thought",
         body: `Sent to the ${threadRef(link.link)} on ${link.host}.`,
       });
+      // Sessions from before 0.2.0 have no stored workspace.
+      updateState((state) => {
+        const current = state.sessions[sessionId];
+        if (current) current.organizationId = webhook.organizationId;
+      });
       if (runId) watchRun(sessionId, runId);
       return;
     }
